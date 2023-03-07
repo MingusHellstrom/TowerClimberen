@@ -205,14 +205,21 @@ class Level(State):
     def get_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                self.quit = True
+                self.next = "pause"
+                self.preserve = True
+                self.done = True
 
             self.player.get_event(event)
 
     def get_keys(self, keys):
         self.player.get_keys(keys)
 
-    def restart(self, x, vy):
+    def restart(self, *args, **kwargs):
+        if len(args) != 2:
+            return
+
+        x, vy = args
+
         self.player.rect.x = x
         self.player.vy = vy
 
@@ -286,7 +293,8 @@ class Menu(State):
         self.button = pygame.Rect((w // 2, h // 2, 100, 60))
         self.button.center = (w // 2, h // 2)
 
-        pygame.draw.rect(screen, (255, 255, 255), self.button)
+        screen.fill((255, 255, 255))
+        pygame.draw.rect(screen, (0, 0, 0), self.button)
         self.update_rects.append(self.button)
 
     def get_event(self, event):
@@ -300,8 +308,57 @@ class Menu(State):
                 self.next = "level1"
                 self.done = True
 
-    def update(self, screen, dt):
-        pass
+
+class Pause(State):
+    def __init__(self, state_id):
+        super().__init__(state_id)
+        self.resume_button = None
+        self.restart_button = None
+        self.menu_button = None
+        self.exit_button = None
+
+    def startup(self, screen):
+        w, h = screen.get_size()
+
+        self.resume_button = pygame.Rect((w // 2, h // 2 - 150, 100, 60))
+        self.resume_button.center = (w // 2, h // 2 - 150)
+
+        self.restart_button = pygame.Rect((w // 2, h // 2, 100, 60))
+        self.restart_button.center = (w // 2, h // 2 - 50)
+
+        self.menu_button = pygame.Rect((w // 2, h // 2, 100, 60))
+        self.menu_button.center = (w // 2, h // 2 + 50)
+
+        self.exit_button = pygame.Rect((w // 2, h // 2, 100, 60))
+        self.exit_button.center = (w // 2, h // 2 + 150)
+
+        pygame.draw.rect(screen, (0, 0, 0), self.resume_button)
+        pygame.draw.rect(screen, (0, 0, 0), self.restart_button)
+        pygame.draw.rect(screen, (0, 0, 0), self.menu_button)
+        pygame.draw.rect(screen, (0, 0, 0), self.exit_button)
+
+        self.update_rects.append(self.resume_button)
+
+    def get_event(self, event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.done = True
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            x, y = pygame.mouse.get_pos()
+
+            if self.resume_button.collidepoint(x, y):
+                self.done = True
+
+            elif self.restart_button.collidepoint(x, y):
+                self.next = "level1"
+                self.done = True
+
+            elif self.menu_button.collidepoint(x, y):
+                self.next = "menu"
+                self.done = True
+
+            elif self.exit_button.collidepoint(x, y):
+                self.quit = True
 
 
 class Control:
@@ -371,7 +428,7 @@ states = {
     "level1": Level1,
     "level2": Level2,
     "level3": None,
-    "pause": None
+    "pause": Pause
 }
 
 
