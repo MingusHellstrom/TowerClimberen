@@ -166,7 +166,9 @@ class Player(pygame.sprite.Sprite):
 
 
 class State:
-    def __init__(self):
+    def __init__(self, state_id):
+        self.id = state_id
+
         self.done = False
         self.next = None
         self.quit = False
@@ -194,9 +196,9 @@ class State:
         pass
 
 
-class Level1(State):
-    def __init__(self):
-        super().__init__()
+class Level(State):
+    def __init__(self, state_id):
+        super().__init__(state_id)
 
         self.player = None
         self.stage = None
@@ -211,18 +213,20 @@ class Level1(State):
     def get_keys(self, keys):
         self.player.get_keys(keys)
 
+    def restart(self, x, vy):
+        self.player.rect.x = x
+        self.player.vy = vy
+
+
+class Level1(Level):
     def startup(self, screen):
         w, h = screen.get_size()
 
         self.player = Player(w // 2, h - 100)
-        self.stage = Stage("sprites/level1.png")
+        self.stage = Stage(f"sprites/{self.id}.png")
 
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
-
-    def restart(self, x, vy):
-        self.player.rect.x = x
-        self.player.vy = vy
 
     def update(self, screen, dt):
         self.update_rects.extend(self.player.update(self.stage, dt))
@@ -241,28 +245,12 @@ class Level1(State):
         self.player.draw(screen)
 
 
-class Level2(State):
-    def __init__(self):
-        super().__init__()
-
-        self.player = None
-        self.stage = None
-
-    def get_event(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                self.quit = True
-
-            self.player.get_event(event)
-
-    def get_keys(self, keys):
-        self.player.get_keys(keys)
-
+class Level2(Level):
     def startup(self, screen):
         w, h = screen.get_size()
 
-        self.player = Player(100, h - 300)
-        self.stage = Stage("sprites/level2.png")
+        self.player = Player(100, h - 250)
+        self.stage = Stage(f"sprites/{self.id}.png")
 
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
@@ -270,8 +258,15 @@ class Level2(State):
     def update(self, screen, dt):
         self.update_rects.extend(self.player.update(self.stage, dt))
 
+        if self.player.rect.y < 0:  # Player is above map
+            self.player.rect.y = 0
+            self.player.vy = 0
+
+            self.next = "level3"
+            self.preserve = True
+            self.done = True
+
         if self.player.rect.y + self.player.rect.h > self.stage.image.get_height():  # Player is below map
-            # self.next = "level1"
             self.next_args = [self.player.rect.x, self.player.vy]
             self.done = True
 
@@ -282,8 +277,8 @@ class Level2(State):
 
 
 class Menu(State):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, state_id):
+        super().__init__(state_id)
         self.button = None
 
     def startup(self, screen):
@@ -317,7 +312,7 @@ class Control:
         self.clock = pygame.time.Clock()
         self.running = True
 
-        self.state = states[start_state]()
+        self.state = states[start_state](start_state)
         self.state.startup(self.screen)
         self.backlog_state = None
 
@@ -338,7 +333,7 @@ class Control:
             self.state.destroy()
             self.backlog_state = None
 
-        self.state = states[state_id](*self.state.next_args, **self.state.next_kwargs)  # Initialize new state
+        self.state = states[state_id](state_id, *self.state.next_args, **self.state.next_kwargs)  # Initialize new state
         self.state.startup(self.screen)
 
     def update(self, dt):
