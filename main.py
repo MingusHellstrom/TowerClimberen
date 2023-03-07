@@ -21,8 +21,15 @@ def scale_speed(speed, dt):
 
 class Stage:
     def __init__(self, file):
-        self.image = pygame.image.load(file).convert_alpha()
-        self.mask = pygame.mask.from_surface(self.image)
+        image = pygame.image.load(file).convert_alpha()
+
+        self.image = image.convert_alpha()
+        image.set_colorkey((255, 255, 255))
+        self.mask = pygame.mask.from_surface(image.convert_alpha())
+
+        # self.image = pygame.image.load("jellyfishBad.png").convert()
+        # self.image.set_colorkey(white)
+        # self.rect = self.image.get_rect()
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
@@ -58,7 +65,7 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         if self.on_ground:
-            self.vy -= 6
+            self.vy -= 7
 
     def get_keys(self, keys):
         self.vx = 0
@@ -98,7 +105,6 @@ class Player(pygame.sprite.Sprite):
             else:
                 self.rect.y += bounce + 4
                 self.vy = 0
-
 
     def collide_horizontal(self, stage, overlap):
         left = self.rect.x == overlap[0]
@@ -181,6 +187,9 @@ class State:
     def startup(self, screen):
         pass
 
+    def restart(self, *args, **kwargs):
+        pass
+
     def destroy(self):
         pass
 
@@ -211,10 +220,62 @@ class Level1(State):
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
 
+    def restart(self, x, vy):
+        self.player.rect.x = x
+        self.player.vy = vy
+
     def update(self, screen, dt):
         self.update_rects.extend(self.player.update(self.stage, dt))
 
-        # screen.fill((255, 255, 255))
+        if self.player.rect.y < 0:
+            self.player.rect.y = 0
+            self.player.vy = 0
+
+            self.next = "level2"
+            self.preserve = True
+            self.done = True
+
+        screen.fill((255, 255, 255))
+        pygame.draw.rect(screen, (255, 255, 255), self.update_rects[0])
+        self.stage.draw(screen)
+        self.player.draw(screen)
+
+
+class Level2(State):
+    def __init__(self):
+        super().__init__()
+
+        self.player = None
+        self.stage = None
+
+    def get_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.quit = True
+
+            self.player.get_event(event)
+
+    def get_keys(self, keys):
+        self.player.get_keys(keys)
+
+    def startup(self, screen):
+        w, h = screen.get_size()
+
+        self.player = Player(100, h - 300)
+        self.stage = Stage("sprites/level2.png")
+
+        screen.fill((255, 255, 255))
+        self.update_rects = [screen.get_rect()]
+
+    def update(self, screen, dt):
+        self.update_rects.extend(self.player.update(self.stage, dt))
+
+        if self.player.rect.y + self.player.rect.h > self.stage.image.get_height():  # Player is below map
+            # self.next = "level1"
+            self.next_args = [self.player.rect.x, self.player.vy]
+            self.done = True
+
+        screen.fill((255, 255, 255))
         pygame.draw.rect(screen, (255, 255, 255), self.update_rects[0])
         self.stage.draw(screen)
         self.player.draw(screen)
@@ -264,6 +325,7 @@ class Control:
         state_id = self.state.next
 
         if state_id is None:
+            self.backlog_state.restart(*self.state.next_args, **self.state.next_kwargs)
             self.state.destroy()
             self.state = self.backlog_state
             self.backlog_state = None
@@ -271,6 +333,7 @@ class Control:
 
         if self.state.preserve:
             self.backlog_state = self.state
+            self.backlog_state.done = False
         else:
             self.state.destroy()
             self.backlog_state = None
@@ -310,7 +373,7 @@ class Control:
 states = {
     "menu": Menu,
     "level1": Level1,
-    "level2": None,
+    "level2": Level2,
     "level3": None,
     "pause": None
 }
