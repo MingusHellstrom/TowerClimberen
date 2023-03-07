@@ -21,15 +21,14 @@ def scale_speed(speed, dt):
 
 class Stage:
     def __init__(self, file):
-        image = pygame.image.load(file).convert_alpha()
+        self.image = pygame.image.load(f"sprites/{file}.png").convert_alpha()
+        self.mask = pygame.image.load(f"sprites/{file}_mask.png")
+        self.mask.set_colorkey((255, 255, 255))
+        self.mask = pygame.mask.from_surface(self.mask.convert_alpha())
 
-        self.image = image.convert_alpha()
-        image.set_colorkey((255, 255, 255))
-        self.mask = pygame.mask.from_surface(image.convert_alpha())
-
-        # self.image = pygame.image.load("jellyfishBad.png").convert()
-        # self.image.set_colorkey(white)
-        # self.rect = self.image.get_rect()
+        # self.image = image.convert_alpha()
+        # image.set_colorkey((255, 255, 255))
+        # self.mask = pygame.mask.from_surface(image.convert_alpha())
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
@@ -223,7 +222,7 @@ class Level1(Level):
         w, h = screen.get_size()
 
         self.player = Player(w // 2, h - 100)
-        self.stage = Stage(f"sprites/{self.id}.png")
+        self.stage = Stage(self.id)
 
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
@@ -250,7 +249,7 @@ class Level2(Level):
         w, h = screen.get_size()
 
         self.player = Player(100, h - 250)
-        self.stage = Stage(f"sprites/{self.id}.png")
+        self.stage = Stage(self.id)
 
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
@@ -314,24 +313,26 @@ class Control:
 
         self.state = states[start_state](start_state)
         self.state.startup(self.screen)
-        self.backlog_state = None
+        self.backlog_state = []
 
     def flip_state(self):
         state_id = self.state.next
 
         if state_id is None:
-            self.backlog_state.restart(*self.state.next_args, **self.state.next_kwargs)
+            backlogged = self.backlog_state.pop()
+
+            backlogged.restart(*self.state.next_args, **self.state.next_kwargs)
             self.state.destroy()
-            self.state = self.backlog_state
-            self.backlog_state = None
+            self.state = backlogged
+
             return
 
         if self.state.preserve:
-            self.backlog_state = self.state
-            self.backlog_state.done = False
+            self.backlog_state.append(self.state)
+            self.state.done = False
         else:
             self.state.destroy()
-            self.backlog_state = None
+            self.backlog_state.clear()
 
         self.state = states[state_id](state_id, *self.state.next_args, **self.state.next_kwargs)  # Initialize new state
         self.state.startup(self.screen)
