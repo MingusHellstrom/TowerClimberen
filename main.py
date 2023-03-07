@@ -15,10 +15,6 @@ settings = {
 }
 
 
-def scale_speed(speed, dt):
-    return speed * dt * 125
-
-
 class Stage:
     def __init__(self, file):
         self.image = pygame.image.load(f"sprites/{file}.png").convert_alpha()
@@ -65,6 +61,7 @@ class Player(pygame.sprite.Sprite):
     def jump(self):
         if self.on_ground:
             self.vy -= 7
+            self.on_ground = False
 
     def get_keys(self, keys):
         self.vx = 0
@@ -78,87 +75,97 @@ class Player(pygame.sprite.Sprite):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
             self.jump()
 
-    def collide(self, stage, overlap, real_vy):
-        if real_vy > 0:  # Player is moving downwards
-            bounce = overlap[1] - (self.rect.y + self.rect.h)
+    def collide_vertical(self, stage, overlap):
+        top = self.vy < 0
+        x = overlap[0]
 
-            if real_vy < abs(bounce):  # Collision could not have occured vertically
-                self.collide_horizontal(stage, overlap)
-
-            else:
-                self.rect.y += bounce
-                self.on_ground = True
-                self.vy = 0
-
-        else:
-            x, y = overlap
+        if top:
+            y = overlap[1]
 
             while stage.mask.get_at((x, y)):
                 y += 1
 
-            bounce = y - overlap[1] - 1
+            bounce = y - overlap[1]
 
-            if abs(real_vy) < bounce:  # Collision could not have occured vertically
-                self.collide_horizontal(stage, overlap)
+        else:
+            bounce = overlap[1] - (self.rect.y + self.rect.h)
 
-            else:
-                self.rect.y += bounce + 4
-                self.vy = 0
+        self.rect.y += bounce
+
+        if not top:
+            self.on_ground = True
+
+    def slow_collide_vertical(self, stage):
+        top = self.vy < 0
+
+        while self.check_collision(stage):
+            self.rect.y += 1 if top else -1
+
+        if not top:
+            self.on_ground = True
 
     def collide_horizontal(self, stage, overlap):
-        left = self.rect.x == overlap[0]
+        left = self.vx < 0
         y = overlap[1]
 
-        try:
-            if left:
-                x = overlap[0]
+        if left:
+            x = overlap[0]
 
-                while stage.mask.get_at((x, y)):
-                    x += 1
+            while stage.mask.get_at((x, y)):
+                x += 1
 
-                bounce = x - overlap[0]
+            bounce = x - overlap[0]
 
-            else:
-                x = self.rect.x + self.rect.w
+        else:
+            x = self.rect.x + self.rect.w
 
-                while stage.mask.get_at((x, y)):
-                    x -= 1
+            while stage.mask.get_at((x, y)):
+                x -= 1
 
-                bounce = x - (self.rect.x + self.rect.w)
-
-        except IndexError:  # Outside map
-            return
+            bounce = x - (self.rect.x + self.rect.w)
 
         self.rect.x += bounce
-        # self.vx = 0
+
+    def slow_collide_horizontal(self, stage):
+        left = self.vx < 0
+
+        while self.check_collision(stage):
+            self.rect.x += 1 if left else -1
 
     def update(self, stage, dt):
         update_rects = [self.rect.copy()]
 
-        if abs(self.vy) > 1:  # Movement is happening
-            self.on_ground = False
+        self.rect.x += int(self.vx * dt * 125)
+        overlap = self.check_collision(stage)
+
+        if overlap:
+            self.collide_horizontal(stage, overlap)
+
+        overlap = self.check_collision(stage)
+
+        if overlap:  # Still overlapping, switching to slow correction
+            self.slow_collide_horizontal(stage)
 
         if not self.on_ground:
             self.vy += 0.1 * dt * 125
-            real_vy = self.vy * dt * 125
-            self.rect.y += int(real_vy)
-            overlap_point = self.check_collision(stage)
+            self.rect.y += int(self.vy * dt * 125)
+            overlap = self.check_collision(stage)
 
-            if overlap_point:  # Check if collision has occured
-                self.collide(stage, overlap_point, real_vy)  # Handle collision
+            if overlap:
+                self.collide_vertical(stage, overlap)
 
-        self.rect.x += int(self.vx * dt * 125)
+                overlap = self.check_collision(stage)
 
-        self.rect.x = max(self.rect.x, 0)
-        self.rect.x = min(self.rect.x, stage.image.get_width() - self.rect.w)
+                if overlap:
+                    self.slow_collide_vertical(stage)
+
+                self.vy = 0
 
         if self.on_ground:
             self.update_on_ground(stage)
 
         update_rects.append((self.rect.x, self.rect.y, self.rect.w, self.rect.h))
         return update_rects
-
-        # return [(update_rect.x - 30, update_rect.y - 30, update_rect.w + 60, update_rect.h + 60)]
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
