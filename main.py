@@ -11,8 +11,12 @@ w = info
 
 settings = {
     'size': (info.current_w // 2, int(info.current_h * 0.8)),
-    'fps': 60
+    'fps': 120
 }
+
+
+def mask_collide(mask, rect, x, y):
+    return rect.collidepoint(x, y) and mask.get_at((x - rect.x, y - rect.y))
 
 
 class Stage:
@@ -21,10 +25,6 @@ class Stage:
         self.mask = pygame.image.load(f"sprites/{file}_mask.png")
         self.mask.set_colorkey((255, 255, 255))
         self.mask = pygame.mask.from_surface(self.mask.convert_alpha())
-
-        # self.image = image.convert_alpha()
-        # image.set_colorkey((255, 255, 255))
-        # self.mask = pygame.mask.from_surface(image.convert_alpha())
 
     def draw(self, screen):
         screen.blit(self.image, (0, 0))
@@ -136,6 +136,10 @@ class Player(pygame.sprite.Sprite):
         update_rects = [self.rect.copy()]
 
         self.rect.x += int(self.vx * dt * 125)
+
+        self.rect.x = max(self.rect.x, 0)
+        self.rect.x = min(self.rect.x, stage.image.get_width() - self.rect.w)
+
         overlap = self.check_collision(stage)
 
         if overlap:
@@ -164,7 +168,7 @@ class Player(pygame.sprite.Sprite):
         if self.on_ground:
             self.update_on_ground(stage)
 
-        update_rects.append((self.rect.x, self.rect.y, self.rect.w, self.rect.h))
+        update_rects.append(self.rect)
         return update_rects
 
     def draw(self, screen):
@@ -252,8 +256,8 @@ class Level1(Level):
             self.preserve = True
             self.done = True
 
-        screen.fill((255, 255, 255))
-        pygame.draw.rect(screen, (255, 255, 255), self.update_rects[0])
+        # screen.fill((0, 0, 0))
+        pygame.draw.rect(screen, (0, 0, 0), self.update_rects[0])
         self.stage.draw(screen)
         self.player.draw(screen)
 
@@ -292,17 +296,32 @@ class Level2(Level):
 class Menu(State):
     def __init__(self, state_id):
         super().__init__(state_id)
-        self.button = None
+
+        self.start_button = None
+        self.start_mask = None
+        self.start_rect = None
+
+        self.exit_button = None
+        self.exit_mask = None
+        self.exit_rect = None
 
     def startup(self, screen):
         w, h = screen.get_size()
 
-        self.button = pygame.Rect((w // 2, h // 2, 100, 60))
-        self.button.center = (w // 2, h // 2)
+        self.start_button = pygame.image.load("sprites/start_button.png").convert_alpha()
+        self.start_mask = pygame.mask.from_surface(self.start_button)
+        self.start_rect = self.start_button.get_rect(center=(w // 2, h // 2 - 50))
+
+        self.exit_button = pygame.image.load("sprites/exit_button.png").convert_alpha()
+        self.exit_mask = pygame.mask.from_surface(self.exit_button)
+        self.exit_rect = self.exit_button.get_rect(center=(w // 2, h // 2 + 50))
 
         screen.fill((255, 255, 255))
-        pygame.draw.rect(screen, (0, 0, 0), self.button)
-        self.update_rects.append(self.button)
+
+        screen.blit(self.start_button, self.start_rect)
+        screen.blit(self.exit_button, self.exit_rect)
+
+        self.update_rects.append(screen.get_rect())
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -311,40 +330,58 @@ class Menu(State):
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             x, y = pygame.mouse.get_pos()
 
-            if self.button.collidepoint(x, y):
+            if mask_collide(self.start_mask, self.start_rect, x, y):
                 self.next = "level1"
                 self.done = True
+
+            elif mask_collide(self.exit_mask, self.exit_rect, x, y):
+                self.quit = True
 
 
 class Pause(State):
     def __init__(self, state_id):
         super().__init__(state_id)
         self.resume_button = None
+        self.resume_mask = None
+        self.resume_rect = None
+
         self.restart_button = None
+        self.restart_mask = None
+        self.restart_rect = None
+
         self.menu_button = None
+        self.menu_mask = None
+        self.menu_rect = None
+
         self.exit_button = None
+        self.exit_mask = None
+        self.exit_rect = None
 
     def startup(self, screen):
         w, h = screen.get_size()
 
-        self.resume_button = pygame.Rect((w // 2, h // 2 - 150, 100, 60))
-        self.resume_button.center = (w // 2, h // 2 - 150)
+        self.resume_button = pygame.image.load("sprites/resume_button.png").convert_alpha()
+        self.resume_mask = pygame.mask.from_surface(self.resume_button)
+        self.resume_rect = self.resume_button.get_rect(center=(w // 2, h // 2 - 150))
 
-        self.restart_button = pygame.Rect((w // 2, h // 2, 100, 60))
-        self.restart_button.center = (w // 2, h // 2 - 50)
+        self.restart_button = pygame.image.load("sprites/restart_button.png").convert_alpha()
+        self.restart_mask = pygame.mask.from_surface(self.restart_button)
+        self.restart_rect = self.restart_button.get_rect(center=(w // 2, h // 2 - 50))
 
-        self.menu_button = pygame.Rect((w // 2, h // 2, 100, 60))
-        self.menu_button.center = (w // 2, h // 2 + 50)
+        self.menu_button = pygame.image.load("sprites/menu_button.png").convert_alpha()
+        self.menu_mask = pygame.mask.from_surface(self.menu_button)
+        self.menu_rect = self.menu_button.get_rect(center=(w // 2, h // 2 + 50))
 
-        self.exit_button = pygame.Rect((w // 2, h // 2, 100, 60))
-        self.exit_button.center = (w // 2, h // 2 + 150)
+        self.exit_button = pygame.image.load("sprites/exit_button.png").convert_alpha()
+        self.exit_mask = pygame.mask.from_surface(self.exit_button)
+        self.exit_rect = self.exit_button.get_rect(center=(w // 2, h // 2 + 150))
 
-        pygame.draw.rect(screen, (0, 0, 0), self.resume_button)
-        pygame.draw.rect(screen, (0, 0, 0), self.restart_button)
-        pygame.draw.rect(screen, (0, 0, 0), self.menu_button)
-        pygame.draw.rect(screen, (0, 0, 0), self.exit_button)
+        screen.blit(self.resume_button, self.resume_rect)
+        screen.blit(self.restart_button, self.restart_rect)
+        screen.blit(self.menu_button, self.menu_rect)
+        screen.blit(self.exit_button, self.exit_rect)
 
-        self.update_rects.append(self.resume_button)
+        self.update_rects.append(screen.get_rect())
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -353,18 +390,18 @@ class Pause(State):
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             x, y = pygame.mouse.get_pos()
 
-            if self.resume_button.collidepoint(x, y):
+            if mask_collide(self.resume_mask, self.resume_rect, x, y):
                 self.done = True
 
-            elif self.restart_button.collidepoint(x, y):
+            elif mask_collide(self.restart_mask, self.restart_rect, x, y):
                 self.next = "level1"
                 self.done = True
 
-            elif self.menu_button.collidepoint(x, y):
+            elif mask_collide(self.menu_mask, self.menu_rect, x, y):
                 self.next = "menu"
                 self.done = True
 
-            elif self.exit_button.collidepoint(x, y):
+            elif mask_collide(self.exit_mask, self.exit_rect, x, y):
                 self.quit = True
 
 
@@ -386,6 +423,7 @@ class Control:
             backlogged = self.backlog_state.pop()
 
             backlogged.restart(*self.state.next_args, **self.state.next_kwargs)
+            backlogged.next = None
             self.state.destroy()
             self.state = backlogged
 
@@ -420,14 +458,14 @@ class Control:
         self.state.get_keys(pygame.key.get_pressed())
 
     def main_game_loop(self):
-        delta_time = 0.009
+        delta_time = 1 / self.fps
 
         while self.running:
-            self.update(delta_time)
             self.event_loop()
-            delta_time = self.clock.tick(self.fps) / 1000.0
+            self.update(delta_time)
             pygame.display.update()  # self.state.update_rects
             self.state.update_rects.clear()
+            delta_time = self.clock.tick(self.fps) / 1000.0
 
 
 states = {
