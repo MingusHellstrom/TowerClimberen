@@ -30,7 +30,7 @@ class Stage:
         screen.blit(self.image, (0, 0))
 
 
-class Player(pygame.sprite.Sprite):
+class Player:
     def __init__(self, x, y):
         super().__init__()
 
@@ -60,7 +60,7 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         if self.on_ground:
-            self.vy -= 7
+            self.vy -= 6.5
             self.on_ground = False
 
     def get_keys(self, keys):
@@ -200,18 +200,27 @@ class State:
         pass
 
     def restart(self, *args, **kwargs):
-        pass
+        self.done = False
+        self.next = None
+        self.quit = False
+        self.preserve = False
+        self.update_rects = []
+        self.next_args = []
+        self.next_kwargs = {}
 
     def destroy(self):
         pass
 
 
 class Level(State):
-    def __init__(self, state_id):
+    def __init__(self, next_state, is_first, state_id):
         super().__init__(state_id)
 
         self.player = None
         self.stage = None
+
+        self.next_state = next_state
+        self.is_first = is_first
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -226,16 +235,37 @@ class Level(State):
         self.player.get_keys(keys)
 
     def restart(self, *args, **kwargs):
-        if len(args) != 2:
-            return
+        if len(args) == 2:
+            x, vy = args
 
-        x, vy = args
+            self.player.rect.x = x
+            self.player.vy = vy
 
-        self.player.rect.x = x
-        self.player.vy = vy
+        super().restart()
+
+    def update(self, screen, dt):
+        self.update_rects.extend(self.player.update(self.stage, dt))
+
+        if self.player.rect.y < 0:
+            self.player.rect.y = 0
+            self.player.vy = 0
+
+            self.next = self.next_state
+            self.preserve = True
+            self.done = True
+
+        if not self.is_first and self.player.rect.y + self.player.rect.h > self.stage.image.get_height():  # Player is below map
+            self.next_args = [self.player.rect.x, self.player.vy]
+            self.done = True
+
+        self.stage.draw(screen)
+        self.player.draw(screen)
 
 
 class Level1(Level):
+    def __init__(self, *args, **kwargs):
+        super().__init__("level2", True, *args, **kwargs)
+
     def startup(self, screen):
         w, h = screen.get_size()
 
@@ -245,24 +275,11 @@ class Level1(Level):
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
 
-    def update(self, screen, dt):
-        self.update_rects.extend(self.player.update(self.stage, dt))
-
-        if self.player.rect.y < 0:
-            self.player.rect.y = 0
-            self.player.vy = 0
-
-            self.next = "level2"
-            self.preserve = True
-            self.done = True
-
-        # screen.fill((0, 0, 0))
-        pygame.draw.rect(screen, (0, 0, 0), self.update_rects[0])
-        self.stage.draw(screen)
-        self.player.draw(screen)
-
 
 class Level2(Level):
+    def __init__(self, *args, **kwargs):
+        super().__init__("level5", False, *args, **kwargs)
+
     def startup(self, screen):
         w, h = screen.get_size()
 
@@ -272,25 +289,19 @@ class Level2(Level):
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
 
-    def update(self, screen, dt):
-        self.update_rects.extend(self.player.update(self.stage, dt))
 
-        if self.player.rect.y < 0:  # Player is above map
-            self.player.rect.y = 0
-            self.player.vy = 0
+class Level5(Level):
+    def __init__(self, *args, **kwargs):
+        super().__init__("menu", False, *args, **kwargs)
 
-            self.next = "level3"
-            self.preserve = True
-            self.done = True
+    def startup(self, screen):
+        w, h = screen.get_size()
 
-        if self.player.rect.y + self.player.rect.h > self.stage.image.get_height():  # Player is below map
-            self.next_args = [self.player.rect.x, self.player.vy]
-            self.done = True
+        self.player = Player(50, h - 100)
+        self.stage = Stage(self.id)
 
         screen.fill((255, 255, 255))
-        pygame.draw.rect(screen, (255, 255, 255), self.update_rects[0])
-        self.stage.draw(screen)
-        self.player.draw(screen)
+        self.update_rects = [screen.get_rect()]
 
 
 class Menu(State):
@@ -420,24 +431,23 @@ class Control:
         state_id = self.state.next
 
         if state_id is None:
-            backlogged = self.backlog_state.pop()
+            backlogged = self.backlog_state.pop()  # Pop the last state off the stack
 
-            backlogged.restart(*self.state.next_args, **self.state.next_kwargs)
-            backlogged.next = None
-            self.state.destroy()
-            self.state = backlogged
+            backlogged.restart(*self.state.next_args, **self.state.next_kwargs)  # Reinit the last state with args
+            self.state.destroy()  # Call the cleaner
+            self.state = backlogged  # Replace current state with backlogged state
 
             return
 
-        if self.state.preserve:
+        if self.state.preserve:  # Current state is to be preserved
             self.backlog_state.append(self.state)
-            self.state.done = False
-        else:
+
+        else:  # State is not preserved, destroy stack
             self.state.destroy()
             self.backlog_state.clear()
 
         self.state = states[state_id](state_id, *self.state.next_args, **self.state.next_kwargs)  # Initialize new state
-        self.state.startup(self.screen)
+        self.state.startup(self.screen)  # Initialize startup function
 
     def update(self, dt):
         if self.state.quit:
@@ -473,6 +483,8 @@ states = {
     "level1": Level1,
     "level2": Level2,
     "level3": None,
+    "level4": None,
+    "level5": Level5,
     "pause": Pause
 }
 
