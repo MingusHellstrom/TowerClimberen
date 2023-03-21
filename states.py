@@ -85,11 +85,12 @@ class Level(State):
         self.update_rects = [screen.get_rect()]
 
     def restart(self, *args, **kwargs):
-        if len(args) == 2:
-            x, vy = args
+        if len(args) == 3:
+            x, vy, dunked = args
 
             self.player.rect.x = x
             self.player.vy = vy
+            self.player.dunked = dunked
 
         super().restart()
 
@@ -105,7 +106,7 @@ class Level(State):
             self.done = True
 
         if not self.is_first and self.player.rect.y + self.player.rect.h > self.stage.image.get_height():  # Player is below map
-            self.next_args = [self.player.rect.x, self.player.vy]
+            self.next_args = [self.player.rect.x, self.player.vy, self.player.dunked]
             self.done = True
 
         self.stage.draw(screen)

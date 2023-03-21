@@ -14,6 +14,7 @@ class Player:
         self.vy = 0
 
         self.on_ground = False
+        self.dunked = False
 
     def update_on_ground(self, stage):
         self.rect.y += 1
@@ -22,6 +23,7 @@ class Player:
 
         if self.on_ground:
             self.vy = 0
+            self.land()
 
     def check_collision(self, stage):
         offset_x = self.rect.x
@@ -34,6 +36,15 @@ class Player:
             self.vy -= 6.5
             self.on_ground = False
 
+    def land(self):
+        self.on_ground = True
+        self.dunked = False
+
+    def dunk(self):
+        if not self.on_ground and not self.dunked:
+            self.vy = 10
+            self.dunked = True
+
     def get_keys(self, keys):
         self.vx = 0
 
@@ -43,8 +54,12 @@ class Player:
             self.vx += 3
 
     def get_event(self, event):
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
-            self.jump()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                self.jump()
+
+            elif event.key == pygame.K_DOWN:
+                self.dunk()
 
     def collide_vertical(self, stage, overlap):
         top = self.vy < 0
@@ -64,7 +79,7 @@ class Player:
         self.rect.y += bounce
 
         if not top:
-            self.on_ground = True
+            self.land()
 
     def slow_collide_vertical(self, stage):
         top = self.vy < 0
@@ -73,7 +88,7 @@ class Player:
             self.rect.y += 1 if top else -1
 
         if not top:
-            self.on_ground = True
+            self.land()
 
     def collide_horizontal(self, stage, overlap):
         left = self.vx < 0
@@ -106,23 +121,24 @@ class Player:
     def update(self, stage, dt):
         update_rects = [self.rect.copy()]
 
-        self.rect.x += int(self.vx * dt * 125)
+        if not self.dunked:
+            self.rect.x += int(self.vx * dt * 125)
 
-        self.rect.x = max(self.rect.x, 0)
-        self.rect.x = min(self.rect.x, stage.image.get_width() - self.rect.w)
+            self.rect.x = max(self.rect.x, 0)
+            self.rect.x = min(self.rect.x, stage.image.get_width() - self.rect.w)
 
-        overlap = self.check_collision(stage)
+            overlap = self.check_collision(stage)
 
-        if overlap:
-            self.collide_horizontal(stage, overlap)
+            if overlap:
+                self.collide_horizontal(stage, overlap)
 
-        overlap = self.check_collision(stage)
+            overlap = self.check_collision(stage)
 
-        if overlap:  # Still overlapping, switching to slow correction
-            self.slow_collide_horizontal(stage)
+            if overlap:  # Still overlapping, switching to slow correction
+                self.slow_collide_horizontal(stage)
 
         if not self.on_ground:
-            self.vy += 0.1 * dt * 125
+            self.vy += 0.1 * dt * 125 if not self.dunked else 0
             self.rect.y += int(self.vy * dt * 125)
             overlap = self.check_collision(stage)
 

@@ -23,7 +23,7 @@ class Control:
         self.clock = pygame.time.Clock()
         self.running = True
 
-        self.state = states[start_state](start_state)
+        self.state = state_dict[start_state](start_state)
         self.state.startup(self.screen)
         self.backlog_state = []
 
@@ -46,7 +46,7 @@ class Control:
             self.state.destroy()
             self.backlog_state.clear()
 
-        self.state = states[state_id](state_id, *self.state.next_args, **self.state.next_kwargs)  # Initialize new state
+        self.state = state_dict[state_id](state_id, *self.state.next_args, **self.state.next_kwargs)  # Initialize new state
         self.state.startup(self.screen)  # Initialize startup function
 
     def update(self, dt):
@@ -78,7 +78,7 @@ class Control:
             delta_time = self.clock.tick(self.fps) / 1000.0
 
 
-states = {
+state_dict = {
     "menu": states.Menu,
     "level1": states.Level1,
     "level2": states.Level2,
