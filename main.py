@@ -1,6 +1,6 @@
 import states
 import pygame
-#gay
+
 
 pygame.init()
 pygame.display.set_caption("Tower Climberen")
