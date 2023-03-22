@@ -6,7 +6,7 @@ import random
 level_info = {
     "level1": {
         "start_pos": (480, 764),
-        "next_state": "level5",
+        "next_state": "level2",
         "is_first": True,
         "ghosts": [
             (500, 100, "orange")
