@@ -1,5 +1,50 @@
 import pygame
-from entities import Player
+from entities import Player, Ghost
+import random
+
+
+level_info = {
+    "level1": {
+        "start_pos": (480, 764),
+        "next_state": "level5",
+        "is_first": True,
+        "ghosts": [
+            (500, 100, "orange")
+        ]
+    },
+    "level2": {
+        "start_pos": (100, 614),
+        "next_state": "level3",
+        "is_first": False,
+        "ghosts": [
+            (500, 100, "orange")
+        ]
+    },
+    "level3": {
+        "start_pos": (100, 614),
+        "next_state": "level4",
+        "is_first": False,
+        "ghosts": [
+            (500, 100, "orange")
+        ]
+    },
+    "level4": {
+        "start_pos": (100, 614),
+        "next_state": "level5",
+        "is_first": False,
+        "ghosts": [
+            (500, 100, "orange")
+        ]
+    },
+    "level5": {
+        "start_pos": (50, 764),
+        "next_state": "menu",
+        "is_first": False,
+        "ghosts": [
+            (800, 750, "orange")
+        ]
+    }
+}
 
 
 def mask_collide(mask, rect, x, y):
@@ -55,15 +100,16 @@ class State:
 
 
 class Level(State):
-    def __init__(self, start_pos, next_state, is_first, state_id):
+    def __init__(self, state_id):
         super().__init__(state_id)
 
         self.player = None
         self.stage = None
+        self.ghosts = None
 
-        self.start_pos = start_pos
-        self.next_state = next_state
-        self.is_first = is_first
+        self.start_pos = None
+        self.next_state = None
+        self.is_first = None
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -78,8 +124,17 @@ class Level(State):
         self.player.get_keys(keys)
 
     def startup(self, screen):
+        self.start_pos = level_info[self.id]["start_pos"]
+        self.next_state = level_info[self.id]["next_state"]
+        self.is_first = level_info[self.id]["is_first"]
+        ghosts = level_info[self.id]["ghosts"]
+
         self.player = Player(*self.start_pos)
         self.stage = Stage(self.id)
+        self.ghosts = []
+
+        for ghost in ghosts:
+            self.ghosts.append(Ghost(*ghost))
 
         screen.fill((255, 255, 255))
         self.update_rects = [screen.get_rect()]
@@ -92,10 +147,21 @@ class Level(State):
             self.player.vy = vy
             self.player.dunked = dunked
 
+            for ghost in self.ghosts:
+                ghost.x = random.randint(0, self.stage.image.get_width())
+                ghost.y = random.randint(0, self.stage.image.get_height())
+
         super().restart()
 
     def update(self, screen, dt):
         self.update_rects.extend(self.player.update(self.stage, dt))
+
+        for ghost in self.ghosts:
+            ghost.update(self.player, dt)
+
+            if ghost.check_collision(self.player):
+                self.done = True
+                self.next = "menu"
 
         if self.player.rect.y < 0:
             self.player.rect.y = 0
@@ -112,30 +178,24 @@ class Level(State):
         self.stage.draw(screen)
         self.player.draw(screen)
 
+        for ghost in self.ghosts:
+            ghost.draw(screen)
+
 
 class Level1(Level):
-    def __init__(self, *args, **kwargs):
-        super().__init__((480, 764), "level2", True, *args, **kwargs)
-
+    pass
 
 class Level2(Level):
-    def __init__(self, *args, **kwargs):
-        super().__init__((100, 614), "level3", False, *args, **kwargs)
-
+    pass
 
 class Level3(Level):
-    def __init__(self, *args, **kwargs):
-        super().__init__((100, 614), "level4", False, *args, **kwargs)
-
+    pass
 
 class Level4(Level):
-    def __init__(self, *args, **kwargs):
-        super().__init__((100, 614), "level5", False, *args, **kwargs)
-
+    pass
 
 class Level5(Level):
-    def __init__(self, *args, **kwargs):
-        super().__init__((50, 764), "menu", False, *args, **kwargs)
+    pass
 
 
 class Menu(State):

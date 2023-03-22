@@ -1,14 +1,64 @@
 import pygame
+from math import sqrt
+
+
+class Ghost:
+    def __init__(self, x, y, color):
+        self.images = []
+
+        for direction in ["up", "right", "down", "left"]:
+            img = pygame.image.load(f"sprites/ghost_{color}_{direction}.png").convert_alpha()
+            img = pygame.transform.scale(img, (40, 40))
+            self.images.append(img)
+
+        self.rect = pygame.Rect(x, y, self.images[0].get_width(), self.images[0].get_height())
+        self.precise_mask = pygame.mask.from_surface(self.images[0])
+
+        self.x = x
+        self.y = y
+
+        self.speed = 1.5
+        self.direction = None
+
+    def update(self, player, dt):
+        dx = player.rect.x - self.rect.x
+        dy = player.rect.y - self.rect.y
+
+        dc = sqrt(dx**2 + dy**2)
+        ratio = self.speed / dc
+
+        dx *= ratio
+        dy *= ratio
+
+        self.x += dx * dt * 125
+        self.y += dy * dt * 125
+
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        if abs(dx) > abs(dy):
+            self.direction = 1 if dx > 0 else 3
+        else:
+            self.direction = 2 if dy > 0 else 0
+
+    def check_collision(self, player):
+        offset_x = self.rect.x - player.rect.x
+        offset_y = self.rect.y - player.rect.y
+
+        return player.precise_mask.overlap(self.precise_mask, (offset_x, offset_y))
+
+    def draw(self, screen):
+        img = self.images[self.direction]
+        screen.blit(img, self.rect)
 
 
 class Player:
     def __init__(self, x, y):
-        super().__init__()
-
         self.image = pygame.image.load("sprites/player.png").convert_alpha()
         self.rect = pygame.Rect(x, y, self.image.get_width(), self.image.get_height())
         self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
         self.mask.fill()
+        self.precise_mask = pygame.mask.from_surface(self.image.convert_alpha())
 
         self.vx = 0
         self.vy = 0
