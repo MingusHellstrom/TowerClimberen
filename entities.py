@@ -14,24 +14,38 @@ class Ghost:
         self.rect = pygame.Rect(x, y, self.images[0].get_width(), self.images[0].get_height())
         self.precise_mask = pygame.mask.from_surface(self.images[0])
 
+        self.vx = 0
+        self.vy = 0
+
         self.x = x
         self.y = y
 
-        self.speed = 1.5
+        self.accel = 0.05
+        self.max_speed = 2
         self.direction = None
 
     def update(self, player, dt):
         dx = player.rect.x - self.rect.x
         dy = player.rect.y - self.rect.y
 
-        dc = sqrt(dx**2 + dy**2)
-        ratio = self.speed / dc
+        dc = sqrt(dx ** 2 + dy ** 2)  # Calculate magnitude of vector
+        ratio = self.accel / dc  # Calculate ratio between acceleration speed and magnitude
 
-        dx *= ratio
-        dy *= ratio
+        accel_x = dx * ratio  # Calculate normilized vectors
+        accel_y = dy * ratio
 
-        self.x += dx * dt * 125
-        self.y += dy * dt * 125
+        self.vx += accel_x * dt * 125  # Apply acceleration
+        self.vy += accel_y * dt * 125
+
+        dc = sqrt(self.vx ** 2 + self.vy ** 2)  # Calculate magnitude of vector
+        ratio = self.max_speed / dc  # Calculate ratio between acceleration speed and magnitude
+
+        if ratio < 1:
+            self.vx *= ratio
+            self.vy *= ratio
+
+        self.x += self.vx * dt * 125
+        self.y += self.vy * dt * 125
 
         self.rect.x = self.x
         self.rect.y = self.y

@@ -3,50 +3,6 @@ from entities import Player, Ghost
 import random
 
 
-level_info = {
-    "level1": {
-        "start_pos": (480, 764),
-        "next_state": "level2",
-        "is_first": True,
-        "ghosts": [
-            (500, 100, "orange")
-        ]
-    },
-    "level2": {
-        "start_pos": (100, 614),
-        "next_state": "level3",
-        "is_first": False,
-        "ghosts": [
-            (500, 100, "orange")
-        ]
-    },
-    "level3": {
-        "start_pos": (100, 614),
-        "next_state": "level4",
-        "is_first": False,
-        "ghosts": [
-            (500, 100, "orange")
-        ]
-    },
-    "level4": {
-        "start_pos": (100, 614),
-        "next_state": "level5",
-        "is_first": False,
-        "ghosts": [
-            (500, 100, "orange")
-        ]
-    },
-    "level5": {
-        "start_pos": (50, 764),
-        "next_state": "menu",
-        "is_first": False,
-        "ghosts": [
-            (800, 750, "orange")
-        ]
-    }
-}
-
-
 def mask_collide(mask, rect, x, y):
     return rect.collidepoint(x, y) and mask.get_at((x - rect.x, y - rect.y))
 
@@ -110,6 +66,7 @@ class Level(State):
         self.start_pos = None
         self.next_state = None
         self.is_first = None
+        self.ghost_list = None
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -124,16 +81,11 @@ class Level(State):
         self.player.get_keys(keys)
 
     def startup(self, screen):
-        self.start_pos = level_info[self.id]["start_pos"]
-        self.next_state = level_info[self.id]["next_state"]
-        self.is_first = level_info[self.id]["is_first"]
-        ghosts = level_info[self.id]["ghosts"]
-
         self.player = Player(*self.start_pos)
         self.stage = Stage(self.id)
         self.ghosts = []
 
-        for ghost in ghosts:
+        for ghost in self.ghost_list:
             self.ghosts.append(Ghost(*ghost))
 
         screen.fill((255, 255, 255))
@@ -183,19 +135,59 @@ class Level(State):
 
 
 class Level1(Level):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.start_pos = (480, 764)
+        self.next_state = "level2"
+        self.is_first = True
+        self.ghost_list = [
+            (500, 100, "orange")
+        ]
 
 class Level2(Level):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.start_pos = (100, 614)
+        self.next_state = "level3"
+        self.is_first = False
+        self.ghost_list = [
+            (500, 100, "orange")
+        ]
 
 class Level3(Level):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.start_pos = (100, 614)
+        self.next_state = "level4"
+        self.is_first = False
+        self.ghost_list = [
+            (500, 100, "orange")
+        ]
 
 class Level4(Level):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.start_pos = (100, 614)
+        self.next_state = "level5"
+        self.is_first = False
+        self.ghost_list = [
+            (500, 100, "orange")
+        ]
 
 class Level5(Level):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.start_pos = (50, 764)
+        self.next_state = "menu"
+        self.is_first = False
+        self.ghost_list = [
+            (800, 750, "orange")
+        ]
 
 
 class Menu(State):
