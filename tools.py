@@ -8,13 +8,13 @@ import os
 
 
 class SpriteGroup:
-    def __init__(self, path, name, start_group, dt, size=None):
+    def __init__(self, path, name, dt, size=None):
         self.name = name
 
         self.dt = dt
         self.time = 0
         self.index = 0
-        self.group = start_group
+        self.group = None
 
         self.rules = []
         self.mirror_func = None

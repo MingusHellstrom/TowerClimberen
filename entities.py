@@ -69,17 +69,11 @@ class Ghost:
 
 class Player:
     def __init__(self, x, y):
-        self.sprite_group = SpriteGroup("sprites/player", "dino", "standing", 0.25, (45, 51))
+        self.sprite_group = SpriteGroup("sprites/player", "dino", 0.25, (45, 51))
         self.rect = pygame.Rect(x, y, 45, 51)
 
         self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
         self.mask.fill()
-
-        # self.image = pygame.image.load("sprites/player.png").convert_alpha()
-        # self.rect = pygame.Rect(x, y, self.image.get_width(), self.image.get_height())
-        # self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
-        # self.mask.fill()
-        # self.precise_mask = pygame.mask.from_surface(self.image.convert_alpha())
 
         self.vx = 0
         self.vy = 0
