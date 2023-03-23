@@ -1,5 +1,6 @@
 import pygame
 from math import sqrt
+from tools import SpriteGroup
 
 
 class Ghost:
@@ -7,7 +8,7 @@ class Ghost:
         self.images = []
 
         for direction in ["up", "right", "down", "left"]:
-            img = pygame.image.load(f"sprites/ghost_{color}_{direction}.png").convert_alpha()
+            img = pygame.image.load(f"sprites/ghosts/ghost_{color}_{direction}.png").convert_alpha()
             img = pygame.transform.scale(img, (40, 40))
             self.images.append(img)
 
@@ -59,7 +60,7 @@ class Ghost:
         offset_x = self.rect.x - player.rect.x
         offset_y = self.rect.y - player.rect.y
 
-        return player.precise_mask.overlap(self.precise_mask, (offset_x, offset_y))
+        return player.sprite_group.mask.overlap(self.precise_mask, (offset_x, offset_y))
 
     def draw(self, screen):
         img = self.images[self.direction]
@@ -68,17 +69,31 @@ class Ghost:
 
 class Player:
     def __init__(self, x, y):
-        self.image = pygame.image.load("sprites/player.png").convert_alpha()
-        self.rect = pygame.Rect(x, y, self.image.get_width(), self.image.get_height())
+        self.sprite_group = SpriteGroup("sprites/player", "dino", "standing", 0.25, (45, 51))
+        self.rect = pygame.Rect(x, y, 45, 51)
+
         self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
         self.mask.fill()
-        self.precise_mask = pygame.mask.from_surface(self.image.convert_alpha())
+
+        # self.image = pygame.image.load("sprites/player.png").convert_alpha()
+        # self.rect = pygame.Rect(x, y, self.image.get_width(), self.image.get_height())
+        # self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
+        # self.mask.fill()
+        # self.precise_mask = pygame.mask.from_surface(self.image.convert_alpha())
 
         self.vx = 0
         self.vy = 0
 
         self.on_ground = False
         self.dunked = False
+        self.left = False
+
+        self.sprite_group.add_rule(lambda: self.dunked, "dunking")
+        self.sprite_group.add_rule(lambda: not self.on_ground and self.vy > 0, "falling")
+        self.sprite_group.add_rule(lambda: not self.on_ground, "jumping")
+        self.sprite_group.add_rule(lambda: self.vx != 0, "walking")
+        self.sprite_group.add_rule(lambda: self.on_ground, "standing")
+        self.sprite_group.set_mirror(lambda: self.left)
 
     def update_on_ground(self, stage):
         self.rect.y += 1
@@ -183,6 +198,10 @@ class Player:
             self.rect.x += 1 if left else -1
 
     def update(self, stage, dt):
+        if self.vx != 0:
+            self.left = self.vx < 0
+
+        self.sprite_group.tick(dt)
         update_rects = [self.rect.copy()]
 
         if not self.dunked:
@@ -223,4 +242,4 @@ class Player:
         return update_rects
 
     def draw(self, screen):
-        screen.blit(self.image, self.rect)
+        screen.blit(self.sprite_group.sprite, self.rect)

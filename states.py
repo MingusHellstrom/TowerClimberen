@@ -138,7 +138,7 @@ class Level1(Level):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.start_pos = (480, 764)
+        self.start_pos = (580, 734)
         self.next_state = "level2"
         self.is_first = True
         self.ghost_list = [
