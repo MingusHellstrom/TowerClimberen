@@ -3,10 +3,6 @@ import glob
 import os
 
 
-# pygame.init()
-# pygame.display.set_mode((20, 20))
-
-
 class SpriteGroup:
     def __init__(self, path, name, dt, size=None):
         self.name = name
@@ -79,8 +75,3 @@ class SpriteGroup:
         if self.time > self.dt:
             self.index = (self.index + 1) % len(self.sprites[self.group])
             self.time %= self.dt
-
-
-
-if __name__ == "__main__":
-    s = SpriteGroup("sprites/player", "dino", size=(15 * 3, 17 * 3))

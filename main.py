@@ -7,7 +7,6 @@ pygame.display.set_caption("Tower Climberen")
 
 
 info = pygame.display.Info()
-w = info
 
 
 settings = {
