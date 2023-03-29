@@ -1,6 +1,7 @@
 import pygame
 from entities import Player, Ghost
 import random
+from sprites import confetti
 
 
 def mask_collide(mask, rect, x, y):
@@ -26,7 +27,6 @@ class State:
         self.next = None
         self.quit = False
         self.preserve = False
-        self.update_rects = []
         self.next_args = []
         self.next_kwargs = {}
 
@@ -47,7 +47,6 @@ class State:
         self.next = None
         self.quit = False
         self.preserve = False
-        self.update_rects = []
         self.next_args = []
         self.next_kwargs = {}
 
@@ -89,7 +88,6 @@ class Level(State):
             self.ghosts.append(Ghost(*ghost))
 
         screen.fill((255, 255, 255))
-        self.update_rects = [screen.get_rect()]
 
     def restart(self, *args, **kwargs):
         if len(args) == 3:
@@ -106,7 +104,7 @@ class Level(State):
         super().restart()
 
     def update(self, screen, dt):
-        self.update_rects.extend(self.player.update(self.stage, dt))
+        self.player.update(self.stage, dt)
 
         for ghost in self.ghosts:
             ghost.update(self.player, dt)
@@ -183,7 +181,7 @@ class Level5(Level):
         super().__init__(*args, **kwargs)
 
         self.start_pos = (50, 764)
-        self.next_state = "menu"
+        self.next_state = "win"
         self.is_first = False
         self.ghost_list = [
             (800, 750, "orange")
@@ -217,8 +215,6 @@ class Menu(State):
 
         screen.blit(self.start_button, self.start_rect)
         screen.blit(self.exit_button, self.exit_rect)
-
-        self.update_rects.append(screen.get_rect())
 
     def get_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -278,8 +274,6 @@ class Pause(State):
         screen.blit(self.menu_button, self.menu_rect)
         screen.blit(self.exit_button, self.exit_rect)
 
-        self.update_rects.append(screen.get_rect())
-
     def get_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.done = True
@@ -300,3 +294,76 @@ class Pause(State):
 
             elif mask_collide(self.exit_mask, self.exit_rect, x, y):
                 self.quit = True
+
+
+class Victory(State):
+    def __init__(self, state_id):
+        super().__init__(state_id)
+
+        self.confetti = confetti
+
+        self.title = None
+        self.title_rect = None
+
+        self.restart_button = None
+        self.restart_mask = None
+        self.restart_rect = None
+
+        self.menu_button = None
+        self.menu_mask = None
+        self.menu_rect = None
+
+        self.exit_button = None
+        self.exit_mask = None
+        self.exit_rect = None
+
+        self.background = None
+
+    def startup(self, screen):
+        w, h = screen.get_size()
+
+        self.background = screen.copy()
+
+        self.title = pygame.image.load("sprites/victory.png").convert_alpha()
+        self.title_rect = self.title.get_rect(center=(w // 2, h // 2 - 200))
+
+        self.restart_button = pygame.image.load("sprites/restart_button.png").convert_alpha()
+        self.restart_mask = pygame.mask.from_surface(self.restart_button)
+        self.restart_rect = self.restart_button.get_rect(center=(w // 2, h // 2 - 50))
+
+        self.menu_button = pygame.image.load("sprites/menu_button.png").convert_alpha()
+        self.menu_mask = pygame.mask.from_surface(self.menu_button)
+        self.menu_rect = self.menu_button.get_rect(center=(w // 2, h // 2 + 50))
+
+        self.exit_button = pygame.image.load("sprites/exit_button.png").convert_alpha()
+        self.exit_mask = pygame.mask.from_surface(self.exit_button)
+        self.exit_rect = self.exit_button.get_rect(center=(w // 2, h // 2 + 150))
+
+    def get_event(self, event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.done = True
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            x, y = pygame.mouse.get_pos()
+
+            if mask_collide(self.restart_mask, self.restart_rect, x, y):
+                self.next = "level1"
+                self.done = True
+
+            elif mask_collide(self.menu_mask, self.menu_rect, x, y):
+                self.next = "menu"
+                self.done = True
+
+            elif mask_collide(self.exit_mask, self.exit_rect, x, y):
+                self.quit = True
+
+    def update(self, screen, dt):
+        self.confetti.tick(dt)
+
+        screen.blit(self.background, (0, 0))
+        screen.blit(self.confetti.sprite, (0, 0))
+
+        screen.blit(self.title, self.title_rect)
+        screen.blit(self.restart_button, self.restart_rect)
+        screen.blit(self.menu_button, self.menu_rect)
+        screen.blit(self.exit_button, self.exit_rect)

@@ -4,16 +4,17 @@ import os
 
 
 class SpriteGroup:
-    def __init__(self, path, name, dt, size=None):
+    def __init__(self, path, name, dt, size=None, start_group=None, mirror=True):
         self.name = name
 
         self.dt = dt
         self.time = 0
         self.index = 0
-        self.group = None
+        self.group = start_group
 
         self.rules = []
-        self.mirror_func = None
+        self.mirror_func = lambda: False
+        self.mirror = mirror
 
         self.sprites = {}
 
@@ -24,11 +25,11 @@ class SpriteGroup:
 
             if group not in self.sprites:
                 self.sprites[group] = []
-                self.sprites[f"{group}-mirror"] = []
+                if self.mirror: self.sprites[f"{group}-mirror"] = []
 
             if len(self.sprites[group]) - 1 < index:
                 self.sprites[group].extend([None] * (index - len(self.sprites[group]) + 1))
-                self.sprites[f"{group}-mirror"].extend([None] * (index - len(self.sprites[f"{group}-mirror"]) + 1))
+                if self.mirror: self.sprites[f"{group}-mirror"].extend([None] * (index - len(self.sprites[f"{group}-mirror"]) + 1))
 
             img = pygame.image.load(file).convert_alpha()
 
@@ -36,7 +37,7 @@ class SpriteGroup:
                 img = pygame.transform.scale(img, size)
 
             self.sprites[group][index] = img
-            self.sprites[f"{group}-mirror"][index] = pygame.transform.flip(img, True, False)
+            if self.mirror: self.sprites[f"{group}-mirror"][index] = pygame.transform.flip(img, True, False)
 
         self.masks = {}
 
@@ -48,11 +49,17 @@ class SpriteGroup:
 
     @property
     def sprite(self):
-        return self.sprites[self.group][self.index] if not self.mirror_func() else self.sprites[f"{self.group}-mirror"][self.index]
+        if self.mirror:
+            return self.sprites[self.group][self.index] if not self.mirror_func() else self.sprites[f"{self.group}-mirror"][self.index]
+        else:
+            return self.sprites[self.group][self.index]
 
     @property
     def mask(self):
-        return self.masks[self.group][self.index] if not self.mirror_func() else self.masks[f"{self.group}-mirror"][self.index]
+        if self.mirror:
+            return self.masks[self.group][self.index] if not self.mirror_func() else self.masks[f"{self.group}-mirror"][self.index]
+        else:
+            return self.masks[self.group][self.index]
 
     def add_rule(self, eval_func, group):
         self.rules.append((eval_func, group))

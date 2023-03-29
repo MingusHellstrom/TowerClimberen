@@ -1,24 +1,21 @@
-import states
 import pygame
 
 
 pygame.init()
 pygame.display.set_caption("Tower Climberen")
-
-
 info = pygame.display.Info()
+screen = pygame.display.set_mode((info.current_w // 2, int(info.current_h * 0.8)))
 
 
-settings = {
-    'size': (info.current_w // 2, int(info.current_h * 0.8)),
-    'fps': 120
-}
+import states
+
+
+FPS = 120
 
 
 class Control:
-    def __init__(self, start_state, **settings):
-        self.__dict__.update(settings)
-        self.screen = pygame.display.set_mode(self.size)
+    def __init__(self, start_state):
+        self.screen = screen
         self.clock = pygame.time.Clock()
         self.running = True
 
@@ -67,14 +64,14 @@ class Control:
         self.state.get_keys(pygame.key.get_pressed())
 
     def main_game_loop(self):
-        delta_time = 1 / self.fps
+        delta_time = 1 / FPS
 
         while self.running:
             self.event_loop()
             self.update(delta_time)
             pygame.display.update()  # self.state.update_rects
-            self.state.update_rects.clear()
-            delta_time = self.clock.tick(self.fps) / 1000.0
+            # self.state.update_rects.clear()
+            delta_time = self.clock.tick(FPS) / 1000.0
 
 
 state_dict = {
@@ -84,10 +81,11 @@ state_dict = {
     "level3": states.Level3,
     "level4": states.Level4,
     "level5": states.Level5,
-    "pause": states.Pause
+    "pause": states.Pause,
+    "win": states.Victory
 }
 
 
 if __name__ == "__main__":
-    cont = Control("menu", **settings)
+    cont = Control("menu")
     cont.main_game_loop()

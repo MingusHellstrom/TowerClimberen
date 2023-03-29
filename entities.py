@@ -1,6 +1,6 @@
 import pygame
 from math import sqrt
-from tools import SpriteGroup
+from sprites import player
 
 
 class Ghost:
@@ -69,7 +69,9 @@ class Ghost:
 
 class Player:
     def __init__(self, x, y):
-        self.sprite_group = SpriteGroup("sprites/player", "dino", 0.25, (45, 51))
+        self.sprite_group = player
+        self.sprite_group.rules.clear()
+
         self.rect = pygame.Rect(x, y, 45, 51)
 
         self.mask = pygame.mask.Mask((self.rect.width, self.rect.height))
