@@ -97,6 +97,8 @@ class Level(State):
             self.player.vy = vy
             self.player.dunked = dunked
 
+            self.player.set_sprite_rules()
+
             for ghost in self.ghosts:
                 ghost.x = random.randint(0, self.stage.image.get_width())
                 ghost.y = random.randint(0, self.stage.image.get_height())

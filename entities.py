@@ -70,7 +70,6 @@ class Ghost:
 class Player:
     def __init__(self, x, y):
         self.sprite_group = player
-        self.sprite_group.rules.clear()
 
         self.rect = pygame.Rect(x, y, 45, 51)
 
@@ -83,6 +82,11 @@ class Player:
         self.on_ground = False
         self.dunked = False
         self.left = False
+
+        self.set_sprite_rules()
+
+    def set_sprite_rules(self):
+        self.sprite_group.rules.clear()
 
         self.sprite_group.add_rule(lambda: self.dunked, "dunking")
         self.sprite_group.add_rule(lambda: not self.on_ground and self.vy > 0, "falling")
