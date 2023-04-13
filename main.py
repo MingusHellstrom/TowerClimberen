@@ -4,7 +4,7 @@ import pygame
 pygame.init()
 pygame.display.set_caption("Tower Climberen")
 info = pygame.display.Info()
-screen = pygame.display.set_mode((info.current_w // 2, int(info.current_h * 0.8)))
+screen = pygame.display.set_mode((960, 864))
 
 
 import states
